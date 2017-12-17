@@ -46,6 +46,13 @@ class StanfordSentiment:
         self._revtokens = revtokens
         return self._tokens
 
+    def tokenfreq(self):
+        if hasattr(self, "_tokenfreq") and self._tokenfreq:
+            return self._tokenfreq
+        self.tokens()
+        return self._tokenfreq
+
+
     def sentences(self):
         if hasattr(self, "_sentences") and self._sentences:
             return self._sentences

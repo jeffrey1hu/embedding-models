@@ -1,93 +1,15 @@
 #!/usr/bin/env python
 
 import logging
-import itertools
 import numpy as np
-from scipy import sparse
-import random
-from functools import wraps
-
-def make_id2word(vocab):
-    return dict((id, word) for word, (id, _) in vocab.iteritems())
+from utils.general_utils import Progbar
 
 
-def listify(fn):
-    """
-    Use this decorator on a generator function to make it return a list
-    instead.
-    """
-
-    @wraps(fn)
-    def listified(*args, **kwargs):
-        return list(fn(*args, **kwargs))
-
-    return listified
-
-
-@listify
-def build_cooccur(vocab, word_freq, dataset, window_size=10, min_count=None):
-    """
-    Build a word co-occurrence list for the given corpus.
-
-    This function is a tuple generator, where each element (representing
-    a cooccurrence pair) is of the form
-
-        (i_main, i_context, cooccurrence)
-
-    where `i_main` is the ID of the main word in the cooccurrence and
-    `i_context` is the ID of the context word, and `cooccurrence` is the
-    `X_{ij}` cooccurrence value as described in Pennington et al.
-    (2014).
-
-    If `min_count` is not `None`, cooccurrence pairs where either word
-    occurs in the corpus fewer than `min_count` times are ignored.
-    """
-
-    vocab_size = len(vocab)
-    id2word = dict((i, word) for word, i in vocab.iteritems())
-
-    # Collect cooccurrences internally as a sparse matrix for passable
-    # indexing speed; we'll convert into a list later
-    cooccurrences = sparse.lil_matrix((vocab_size, vocab_size),
-                                      dtype=np.float64)
-
-    counter = 0
-    for sentence in dataset.sentences():
-        if counter % 1000 == 0:
-            logging.info("Building cooccurrence matrix: on line %i", counter)
-
-        token_ids = [vocab[word] for word in sentence]
-
-        for center_i, center_id in enumerate(token_ids):
-            # Collect all word IDs in left window of center word
-            context_ids = token_ids[max(0, center_i - window_size) : center_i]
-            contexts_len = len(context_ids)
-
-            for left_i, left_id in enumerate(context_ids):
-                # Distance from center word
-                distance = contexts_len - left_i
-
-                # Weight by inverse of distance between words
-                increment = 1.0 / float(distance)
-
-                # Build co-occurrence matrix symmetrically (pretend we
-                # are calculating right contexts as well)
-                cooccurrences[center_id, left_id] += increment
-                cooccurrences[left_id, center_id] += increment
-        counter += 1
-
-    # Now yield our tuple sequence (dig into the LiL-matrix internals to
-    # quickly iterate through all nonzero cells)
-    for i, (row, data) in enumerate(itertools.izip(cooccurrences.rows,
-                                                   cooccurrences.data)):
-        if min_count is not None and word_freq[id2word[i]] < min_count:
-            continue
-
-        for data_idx, j in enumerate(row):
-            if min_count is not None and word_freq[id2word[j]] < min_count:
-                continue
-
-            yield i, j, data[data_idx]
+def weight(cooccur, x_max, alpha):
+    if cooccur < x_max:
+        return (cooccur * 1.0 / x_max) ** alpha
+    else:
+        return 1.
 
 
 def run_iter(data, learning_rate=0.05, x_max=100, alpha=0.75):
@@ -122,6 +44,36 @@ def run_iter(data, learning_rate=0.05, x_max=100, alpha=0.75):
     """
 
     global_cost = 0
+    prog = Progbar(target=len(data) // 1000)
+    i = 1
+    for v_main, v_context, b_main, b_context, gradsq_W_main, gradsq_W_context,\
+        gradsq_b_main, gradsq_b_context, cooccurrence in data:
+        # weight of the sample
+        w = weight(cooccurrence, x_max, alpha)
+        # compute loss
+        L = np.dot(v_main.T, v_context) + b_main[0] + b_context[0] - np.log(cooccurrence)
+        sample_cost = L ** 2
+        sample_cost *= w
+        # gradients of vectors and bias
+        grad_v_main = 2 * L * v_context * w
+        grad_v_context = 2 * L * v_main * w
+        grad_b_main = 2 * L * w
+        grad_b_context = 2 * L * w
+        # adagrad square cache
+        gradsq_W_main += grad_v_main ** 2
+        gradsq_W_context += grad_v_context ** 2
+        gradsq_b_main += grad_b_main ** 2
+        gradsq_b_context += grad_b_context ** 2
+        # update vector and bias
+        v_main -= learning_rate * grad_v_main / np.sqrt(gradsq_W_main)
+        v_context -= learning_rate * grad_v_context / np.sqrt(gradsq_W_context)
+        b_main -= learning_rate * grad_b_main / np.sqrt(gradsq_b_main)
+        b_context -= learning_rate * grad_b_context / np.sqrt(gradsq_b_context)
+
+        global_cost += sample_cost
+        if i % 1000 == 0:
+            prog.update(i // 1000, [("train loss", global_cost / i)])
+        i += 1
 
     return global_cost
 

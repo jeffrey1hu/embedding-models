@@ -8,6 +8,7 @@ import random
 import numpy as np
 import os.path as op
 import cPickle as pickle
+from utils.general_utils import Progbar
 
 
 def load_saved_params():
@@ -78,7 +79,7 @@ def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
         postprocessing = lambda x: x
 
     expcost = None
-
+    prog = Progbar(target=iterations)
     for iter in xrange(start_iter + 1, iterations + 1):
         # Don't forget to apply the postprocessing after every iteration!
         # You might want to print the progress every few iterations.
@@ -95,7 +96,8 @@ def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
                 expcost = cost
             else:
                 expcost = .95 * expcost + .05 * cost
-            print "iter %d: %f" % (iter, expcost)
+            # print "iter %d: %f" % (iter, expcost)
+            prog.update(iter, [("expcost", expcost)])
 
         if iter % SAVE_PARAMS_EVERY == 0 and useSaved:
             save_params(iter, x)

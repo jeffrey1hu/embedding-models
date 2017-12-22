@@ -3,7 +3,7 @@ import numpy as np
 
 
 def make_id2word(vocab):
-    return dict((id, word) for word, (id, _) in vocab.iteritems())
+    return dict((id, word) for word, id in vocab.iteritems())
 
 
 def merge_main_context(W, merge_fun=lambda m, c: np.mean([m, c], axis=0),

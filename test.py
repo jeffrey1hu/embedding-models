@@ -1,7 +1,8 @@
 import logging
 from utils.treebank import StanfordSentiment
-from glove import *
+from glove import train_glove
 from utils import evaluate
+from utils.data_utils import build_cooccur, make_id2word
 
 logging.basicConfig(level=logging.INFO)
 

@@ -6,6 +6,10 @@ Simple python implementation of two popular word embedding algorithm: Word2vec a
 * The word2vec code is build under the instructions of [cs224n assigment #1](http://web.stanford.edu/class/cs224n/assignment3/index.html).
 * The glove implementation is followed along with Hans [blog](http://www.foldl.me/2014/glove-python/).
 
+### Dataset
+* The existing dataset in this project is SST(Stanford Sentiment Treebank)
+* SST contain sentiment analysis labels which can be used to evaluating the pros & cons of each embedding model.
+
 ### Usage
 * Install the dependencies (Python2.7)
 ```bash

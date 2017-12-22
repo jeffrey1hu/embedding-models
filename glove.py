@@ -3,7 +3,7 @@
 import logging
 import numpy as np
 from utils.general_utils import Progbar
-
+from random import shuffle
 
 def weight(cooccur, x_max, alpha):
     if cooccur < x_max:
@@ -42,6 +42,7 @@ def run_iter(data, learning_rate=0.05, x_max=100, alpha=0.75):
     Returns the cost associated with the given weight assignments and
     updates the weights by online AdaGrad in place.
     """
+    shuffle(data)
 
     global_cost = 0
     prog = Progbar(target=len(data) // 1000)

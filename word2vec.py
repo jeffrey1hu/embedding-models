@@ -1,7 +1,35 @@
 #!/usr/bin/env python
+import logging
+import time
 import random
 import numpy as np
+from sgd import sgd
 from utils.sigmoid import sigmoid
+
+def word2vec_model(args, dataset):
+    tokens = dataset.tokens()
+    nWords = len(tokens)
+
+    startTime=time.time()
+    wordVectors = np.concatenate(
+        ((np.random.rand(nWords, args.dimVectors) - 0.5) /
+           args.dimVectors, np.zeros((nWords, args.dimVectors))),
+        axis=0)
+    wordVectors = sgd(
+        lambda vec: word2vec_sgd_wrapper(skipgram, tokens, vec, dataset, args.window_size,
+            negSamplingCostAndGradient),
+        wordVectors, 0.3, 40000, None, True, PRINT_EVERY=1)
+    # Note that normalization is not called here. This is not a bug,
+    # normalizing during training loses the notion of length.
+
+    logging.info("training took %d seconds" % (time.time() - startTime))
+
+    # concatenate the input and output word vectors
+    wordVectors = np.concatenate(
+        (wordVectors[:nWords,:], wordVectors[nWords:,:]),
+        axis=0)
+    # wordVectors = wordVectors[:nWords,:] + wordVectors[nWords:,:]
+
 
 def getNegativeSamples(target, dataset, K):
     """ Samples K indexes which are not the target """

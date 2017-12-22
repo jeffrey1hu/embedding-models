@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 
-# Save parameters every a few SGD iterations as fail-safe
-SAVE_PARAMS_EVERY = 5000
-
 import glob
 import random
 import numpy as np
 import os.path as op
 import cPickle as pickle
-from utils.general_utils import Progbar
+from utils.general_utils import Progbar, save_params
 
 
 def load_saved_params():
@@ -30,15 +27,7 @@ def load_saved_params():
     else:
         return st, None, None
 
-
-def save_params(iter, params):
-    with open("saved_params_%d.npy" % iter, "w") as f:
-        pickle.dump(params, f)
-        pickle.dump(random.getstate(), f)
-
-
-def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
-        PRINT_EVERY=10):
+def sgd(f, x0, lr, iterations, postprocessing=None, useSaved=False, save_every=False, save_path='./'):
     """ Stochastic Gradient Descent
 
     Implement the stochastic gradient descent method in this function.
@@ -61,12 +50,14 @@ def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
 
     # Anneal learning rate every several iterations
     ANNEAL_EVERY = 20000
+    # auto save if save every is true
+    SAVE_EVERY = 10000
 
     if useSaved:
         start_iter, oldx, state = load_saved_params()
         if start_iter > 0:
             x0 = oldx
-            step *= 0.5 ** (start_iter / ANNEAL_EVERY)
+            lr *= lr ** (start_iter / ANNEAL_EVERY)
 
         if state:
             random.setstate(state)
@@ -83,27 +74,22 @@ def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
     for iter in xrange(start_iter + 1, iterations + 1):
         # Don't forget to apply the postprocessing after every iteration!
         # You might want to print the progress every few iterations.
-
-        cost = None
-        ### YOUR CODE HERE
         cost, grad = f(x)
-        x -= grad * step
+        x -= grad * lr
         postprocessing(grad)
-        ### END YOUR CODE
 
-        if iter % PRINT_EVERY == 0:
-            if not expcost:
-                expcost = cost
-            else:
-                expcost = .95 * expcost + .05 * cost
-            # print "iter %d: %f" % (iter, expcost)
-            prog.update(iter, [("expcost", expcost)])
+        if not expcost:
+            expcost = cost
+        else:
+            expcost = .95 * expcost + .05 * cost
 
-        if iter % SAVE_PARAMS_EVERY == 0 and useSaved:
-            save_params(iter, x)
+        prog.update(iter, [("expcost", expcost)])
+
+        if save_every and iter % SAVE_EVERY == 0:
+            save_params(save_path, iter, x)
 
         if iter % ANNEAL_EVERY == 0:
-            step *= 0.5
+            lr *= 0.5
 
     return x
 

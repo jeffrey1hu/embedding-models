@@ -1,6 +1,15 @@
 import sys
 import numpy as np
 import time
+import pickle
+import random
+from os.path import join as pjoin
+
+def save_params(path, iter, params):
+    with open(pjoin(path, "saved_params_%d.npy" % iter), "w") as f:
+        pickle.dump(params, f)
+        pickle.dump(random.getstate(), f)
+
 
 class Progbar(object):
     """

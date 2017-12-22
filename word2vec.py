@@ -12,13 +12,13 @@ def word2vec_model(args, dataset):
 
     startTime=time.time()
     wordVectors = np.concatenate(
-        ((np.random.rand(nWords, args.dimVectors) - 0.5) /
-           args.dimVectors, np.zeros((nWords, args.dimVectors))),
+        ((np.random.rand(nWords, args.vector_size) - 0.5) /
+           args.vector_size, np.zeros((nWords, args.vector_size))),
         axis=0)
     wordVectors = sgd(
         lambda vec: word2vec_sgd_wrapper(skipgram, tokens, vec, dataset, args.window_size,
             negSamplingCostAndGradient),
-        wordVectors, 0.3, 40000, None, True, PRINT_EVERY=1)
+        wordVectors, args.learning_rate, args.iterations, None, args.use_saved, args.save_every, args.vector_path)
     # Note that normalization is not called here. This is not a bug,
     # normalizing during training loses the notion of length.
 
@@ -29,7 +29,7 @@ def word2vec_model(args, dataset):
         (wordVectors[:nWords,:], wordVectors[nWords:,:]),
         axis=0)
     # wordVectors = wordVectors[:nWords,:] + wordVectors[nWords:,:]
-
+    return wordVectors
 
 def getNegativeSamples(target, dataset, K):
     """ Samples K indexes which are not the target """

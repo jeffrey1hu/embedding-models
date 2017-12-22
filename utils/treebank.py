@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import time
 import cPickle as pickle
 import numpy as np
 import os
@@ -13,11 +14,13 @@ class StanfordSentiment:
 
         self.path = path
         self.tablesize = tablesize
+        self.tokens()
 
     def tokens(self):
         if hasattr(self, "_tokens") and self._tokens:
             return self._tokens
-
+        start = time.time()
+        print "Loading data...",
         tokens = dict()
         tokenfreq = dict()
         wordcount = 0
@@ -44,6 +47,7 @@ class StanfordSentiment:
         self._tokenfreq = tokenfreq
         self._wordcount = wordcount
         self._revtokens = revtokens
+        print "took {:.2f} seconds\n".format(time.time() - start)
         return self._tokens
 
     def tokenfreq(self):
@@ -52,6 +56,11 @@ class StanfordSentiment:
         self.tokens()
         return self._tokenfreq
 
+    def word_count(self):
+        if hasattr(self, "_wordcount") and self._wordcount:
+            return self._wordcount
+        self.tokens()
+        return self._wordcount
 
     def sentences(self):
         if hasattr(self, "_sentences") and self._sentences:

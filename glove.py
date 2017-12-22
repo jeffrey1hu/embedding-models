@@ -2,7 +2,7 @@
 
 import logging
 import numpy as np
-from utils.general_utils import Progbar
+from utils.general_utils import Progbar, save_params
 from random import shuffle
 
 def weight(cooccur, x_max, alpha):
@@ -79,7 +79,7 @@ def run_iter(data, learning_rate=0.05, x_max=100, alpha=0.75):
     return global_cost
 
 
-def train_glove(vocab, cooccurrences, iter_callback=None, vector_size=100,
+def train_glove(vocab, cooccurrences, save_path, save_every=False, vector_size=100,
                 iterations=25, **kwargs):
     """
     Train GloVe vectors on the given generator `cooccurrences`, where
@@ -90,9 +90,6 @@ def train_glove(vocab, cooccurrences, iter_callback=None, vector_size=100,
     where `x_ij` is a cooccurrence value $X_{ij}$ as presented in the
     matrix defined by `build_cooccur` and the Pennington et al. (2014)
     paper itself.
-
-    If `iter_callback` is not `None`, the provided function will be
-    called after each iteration with the learned `W` matrix so far.
 
     Keyword arguments are passed on to the iteration step function
     `run_iter`.
@@ -156,8 +153,8 @@ def train_glove(vocab, cooccurrences, iter_callback=None, vector_size=100,
 
         logging.info("\t\tDone (cost %f)", cost)
 
-        if iter_callback is not None:
-            iter_callback(W)
+        if save_every:
+            save_params(save_path, i, W)
 
     return W
 
